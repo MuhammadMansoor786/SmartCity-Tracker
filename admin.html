@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - Smart City</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #e9ecef; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #343a40; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { color: #343a40; margin: 0; }
+        .logout { background: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
+        th { background-color: #343a40; color: white; }
+        tr:hover { background-color: #f1f1f1; }
+        
+        select { padding: 5px; border-radius: 5px; cursor: pointer; }
+        .update-btn { padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        
+        /* Image Thumbnail Styling */
+        .issue-img { width: 70px; height: 70px; object-fit: cover; border-radius: 5px; cursor: pointer; border: 1px solid #ccc; transition: 0.3s; }
+        .issue-img:hover { opacity: 0.8; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>Control Panel (Admin Dashboard)</h2>
+        <button class="logout" onclick="logout()">Logout</button>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Citizen Name</th>
+                <th>Image</th> <!-- NAYA COLUMN -->
+                <th>Title & Location</th>
+                <th>Current Status</th>
+                <th>Update Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="adminTableBody">
+            <tr><td colspan="7" style="text-align:center;">Loading records...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const userRole = localStorage.getItem('userRole');
+    // Agar user admin nahi hai toh wapas bhej do
+    if (userRole !== 'admin') {
+        window.location.href = '/';
+    }
+
+    const tableBody = document.getElementById('adminTableBody');
+
+    // Tamaam complaints fetch karna
+    async function fetchAllIssues() {
+        try {
+            const res = await fetch('http://localhost:3000/api/admin/issues');
+            const issues = await res.json();
+            
+            tableBody.innerHTML = '';
+            
+            if(issues.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Koi complaint nahi aayi.</td></tr>';
+                return;
+            }
+
+            issues.forEach(issue => {
+                // Image tag setup karna
+                const imgHTML = issue.image_url 
+                    ? `<img src="${issue.image_url}" class="issue-img" onclick="window.open('${issue.image_url}', '_blank')" title="Click to view full image">` 
+                    : '<span style="color: #999; font-size: 12px;">No Image</span>';
+
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>#${issue.id}</td>
+                        <td><strong>${issue.citizen_name}</strong></td>
+                        <td>${imgHTML}</td> <!-- TASWEER YAHAN DIKHEGI -->
+                        <td>${issue.title} <br><small>📍 ${issue.location}</small></td>
+                        <td><strong>${issue.status}</strong></td>
+                        <td>
+                            <select id="statusSelect-${issue.id}">
+                                <option value="Pending" ${issue.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="In Progress" ${issue.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                <option value="Resolved" ${issue.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button class="update-btn" onclick="updateStatus(${issue.id})">Update</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (err) {
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Data load nahi hua.</td></tr>';
+        }
+    }
+
+    // Status update karne ka function
+    async function updateStatus(id) {
+        const newStatus = document.getElementById(`statusSelect-${id}`).value;
+        try {
+            const res = await fetch(`http://localhost:3000/api/admin/issues/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if(res.ok) {
+                alert('Status Update Ho Gaya!');
+                fetchAllIssues(); // Table ko refresh karo
+            }
+        } catch (err) {
+            alert('Error updating status!');
+        }
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = '/';
+    }
+
+    fetchAllIssues();
+</script>
+</body>
+</html>

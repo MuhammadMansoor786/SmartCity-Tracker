@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Citizen Dashboard - Report Issue</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-top: 0; }
+        h3 { color: #555; margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #d9534f; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #c9302c; }
+        #message { text-align: center; margin-top: 15px; font-weight: bold; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .logout { background: #6c757d; width: auto; padding: 5px 15px; font-size: 14px; margin-top: 0; }
+        
+        /* Complaints List Styling */
+        .issue-card { border: 1px solid #e1e4e8; padding: 15px; margin-bottom: 15px; border-radius: 8px; background: #fdfdfd; }
+        .issue-title { margin: 0 0 5px 0; color: #0056b3; }
+        .issue-location { font-size: 13px; color: #666; margin: 0 0 10px 0; }
+        .issue-desc { font-size: 14px; margin: 0 0 10px 0; }
+        .badge { padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; color: white; }
+        .status-Pending { background: #ff9800; }
+        .status-In-Progress { background: #2196f3; }
+        .status-Resolved { background: #4caf50; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>Report a New Issue</h2>
+        <button class="logout" onclick="logout()">Logout</button>
+    </div>
+    
+    <form id="issueForm">
+        <div class="form-group">
+            <input type="text" id="title" placeholder="Masle ka Title (e.g., Tooti hui sarak)" required>
+        </div>
+        <div class="form-group">
+            <input type="text" id="location" placeholder="Exact Location (e.g., Block 4, Street 2)" required>
+        </div>
+        <div class="form-group">
+            <textarea id="description" rows="4" placeholder="Masle ki tafseel likhein..." required></textarea>
+        </div>
+         <div class="form-group">
+            <label style="font-size: 14px; color: #555;">Masle ki tasweer (Optional):</label>
+            <input type="file" id="image" accept="image/*">
+        </div>
+        <button type="submit">Submit Complaint</button>
+    </form>
+    
+    <div id="message"></div>
+
+    <!-- User's Complaints List Section -->
+    <h3>Mera Record (My Complaints)</h3>
+    <div id="issuesList">
+        <p style="text-align: center; color: #777;">Loading...</p>
+    </div>
+</div>
+
+<script>
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        window.location.href = '/';
+    }
+
+    const issueForm = document.getElementById('issueForm');
+    const messageDiv = document.getElementById('message');
+    const issuesList = document.getElementById('issuesList');
+
+    // Complaint Fetch Karne ka Function
+    async function fetchMyIssues() {
+        try {
+            const res = await fetch(`http://localhost:3000/api/issues/${userId}`);
+            const issues = await res.json();
+            
+            issuesList.innerHTML = ''; // Loading text hata do
+
+            if(issues.length === 0) {
+                issuesList.innerHTML = '<p style="color: #777;">Aapne abhi tak koi complaint darj nahi ki.</p>';
+                return;
+            }
+
+            // Har complaint ka card banana
+            issues.forEach(issue => {
+                // Status ke hisaab se color class set karna
+                const statusClass = issue.status === 'In Progress' ? 'status-In-Progress' : `status-${issue.status}`;
+                
+                // IMAGE TAG YAHAN ADD KIYA GAYA HAI
+                issuesList.innerHTML += `
+                    <div class="issue-card">
+                        <h4 class="issue-title">${issue.title}</h4>
+                        <p class="issue-location">📍 ${issue.location}</p>
+                        <p class="issue-desc">${issue.description}</p>
+                        ${issue.image_url ? `<img src="${issue.image_url}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">` : ''}
+                        <span class="badge ${statusClass}">${issue.status}</span>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            issuesList.innerHTML = '<p style="color: red;">Record load nahi ho saka.</p>';
+        }
+    }
+
+    // Nayi Complaint Submit Karne ka Logic (FormData ke sath)
+    issueForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // FormData use kar rahe hain taake image aur text sath ja sakein
+        const formData = new FormData();
+        formData.append('user_id', userId);
+        formData.append('title', document.getElementById('title').value);
+        formData.append('location', document.getElementById('location').value);
+        formData.append('description', document.getElementById('description').value);
+        
+        // Agar file select ki gayi hai toh usay FormData mein add karo
+        const imageFile = document.getElementById('image').files[0];
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+
+        try {
+            const res = await fetch('http://localhost:3000/api/issues', {
+                method: 'POST',
+                // Headers yahan isliye nahi hain kyunki FormData khud adjust kar leta hai
+                body: formData 
+            });
+            
+            const data = await res.json();
+            messageDiv.style.color = res.ok ? "green" : "red";
+            messageDiv.innerText = data.message;
+            
+            if(res.ok) {
+                issueForm.reset(); 
+                fetchMyIssues(); 
+                setTimeout(() => { messageDiv.innerText = ""; }, 3000); 
+            }
+        } catch (err) {
+            messageDiv.style.color = "red";
+            messageDiv.innerText = "Server error!";
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem('userId'); 
+        window.location.href = '/'; 
+    }
+
+    // Page Load Hote Hi Function Call Karo
+    fetchMyIssues();
+</script>
+</body>
+</html>

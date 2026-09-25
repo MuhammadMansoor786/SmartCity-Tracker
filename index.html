@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart City Portal - Login</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        button:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .toggle-btn { background: none; color: #007bff; border: none; cursor: pointer; width: 100%; margin-top: 15px; font-weight: normal; font-size: 14px; }
+        .toggle-btn:hover { text-decoration: underline; background: none; }
+        #message { text-align: center; margin-top: 15px; font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<body>
+    
+
+<div class="container">
+    <h2 id="form-title">Login to Portal</h2>
+    
+    <!-- Login Form -->
+    <form id="loginForm">
+        <div class="form-group">
+            <input type="email" id="loginEmail" placeholder="Email Address" required>
+        </div>
+        <div class="form-group">
+            <input type="password" id="loginPassword" placeholder="Password" required>
+        </div>
+        <button type="submit" class="btn-success">Login</button>
+    </form>
+
+    <!-- Sign Up Form (Pehle chupa hua hoga) -->
+    <form id="signupForm" style="display: none;">
+        <div class="form-group">
+            <input type="text" id="signupName" placeholder="Full Name" required>
+        </div>
+        <div class="form-group">
+            <input type="email" id="signupEmail" placeholder="Email Address" required>
+        </div>
+        <div class="form-group">
+            <input type="password" id="signupPassword" placeholder="Password" required>
+        </div>
+        <button type="submit">Create Account</button>
+    </form>
+
+    <button class="toggle-btn" id="toggleBtn">Naya account banayein (Sign Up)</button>
+    <div id="message"></div>
+</div>
+
+<script>
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const formTitle = document.getElementById('form-title');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const messageDiv = document.getElementById('message');
+
+    // Forms ko switch karne ka logic
+    toggleBtn.addEventListener('click', () => {
+        messageDiv.innerText = ""; 
+        if (loginForm.style.display === "none") {
+            loginForm.style.display = "block";
+            signupForm.style.display = "none";
+            formTitle.innerText = "Login to Portal";
+            toggleBtn.innerText = "Naya account banayein (Sign Up)";
+        } else {
+            loginForm.style.display = "none";
+            signupForm.style.display = "block";
+            formTitle.innerText = "Register for Smart City";
+            toggleBtn.innerText = "Pehle se account hai? (Login)";
+        }
+    });
+
+    // Sign Up API Call
+    signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('signupName').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+
+        try {
+            const res = await fetch('http://localhost:3000/api/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await res.json();
+            messageDiv.style.color = res.ok ? "green" : "red";
+            messageDiv.innerText = data.message;
+            
+            if(res.ok) {
+                setTimeout(() => toggleBtn.click(), 2000); // 2 seconds baad khud login par chala jayega
+            }
+        } catch (err) {
+            messageDiv.style.color = "red";
+            messageDiv.innerText = "Server error!";
+        }
+    });
+
+    // Login API Call
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+            const res = await fetch('http://localhost:3000/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            messageDiv.style.color = res.ok ? "green" : "red";
+            messageDiv.innerText = data.message;
+
+          if (res.ok) {
+                // User ID aur Role dono save karo
+                localStorage.setItem('userId', data.user.id);
+                localStorage.setItem('userRole', data.user.role);
+                
+                // Role ke mutabiq page par bhejo
+                if(data.user.role === 'admin') {
+                    window.location.href = '/admin.html';
+                } else {
+                    window.location.href = '/dashboard.html';
+                }
+            }
+        } catch (err) {
+            messageDiv.style.color = "red";
+            messageDiv.innerText = "Server error!";
+        }
+    });
+</script>
+</body>
+</html>

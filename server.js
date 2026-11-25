@@ -48,7 +48,10 @@ app.post('/api/signup', (req, res) => {
     db.query(sql, [name, email, password], (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'Database error', details: err.message });
+            return res.status(500).json({
+                success: false,
+                message: err.sqlMessage || err.message || err.code || 'Database error'
+            });
         }
         res.status(201).json({ message: "Account kamyabi se ban gaya!" });
     });
@@ -60,7 +63,10 @@ app.post('/api/login', (req, res) => {
     db.query(sql, [email, password], (err, results) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'Database error', details: err.message });
+            return res.status(500).json({
+                success: false,
+                message: err.sqlMessage || err.message || err.code || 'Database error'
+            });
         }
         if (results.length > 0) res.status(200).json({ message: "Login successful!", user: results[0] });
         else res.status(401).json({ message: "Email ya password ghalat hai!" });
@@ -75,7 +81,10 @@ app.post('/api/issues', upload.single('image'), (req, res) => {
     db.query(sql, [user_id, title, description, location, image_url], (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'Database error', details: err.message });
+            return res.status(500).json({
+                success: false,
+                message: err.sqlMessage || err.message || err.code || 'Database error'
+            });
         }
         res.status(201).json({ message: "Aapki complaint successfully darj ho gayi hai!" });
     });
@@ -86,7 +95,10 @@ app.get('/api/issues/:userId', (req, res) => {
     db.query(sql, [req.params.userId], (err, results) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'Database error', details: err.message });
+            return res.status(500).json({
+                success: false,
+                message: err.sqlMessage || err.message || err.code || 'Database error'
+            });
         }
         res.status(200).json(results);
     });
@@ -97,7 +109,10 @@ app.get('/api/admin/issues', (req, res) => {
     db.query(sql, (err, results) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'Database error', details: err.message });
+            return res.status(500).json({
+                success: false,
+                message: err.sqlMessage || err.message || err.code || 'Database error'
+            });
         }
         res.status(200).json(results);
     });
@@ -108,7 +123,10 @@ app.put('/api/admin/issues/:id', (req, res) => {
     db.query(sql, [req.body.status, req.params.id], (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'Database error', details: err.message });
+            return res.status(500).json({
+                success: false,
+                message: err.sqlMessage || err.message || err.code || 'Database error'
+            });
         }
         res.status(200).json({ message: "Status update ho gaya!" });
     });

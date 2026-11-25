@@ -31,12 +31,17 @@ CREATE TABLE `issues` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `title` varchar(150) NOT NULL,
+  `category` varchar(100) DEFAULT NULL,
   `description` text NOT NULL,
   `location` varchar(255) NOT NULL,
   `status` enum('Pending','In Progress','Resolved') DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `image_url` varchar(255) DEFAULT NULL
+  `image_url` longtext
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- For existing databases, apply:
+-- ALTER TABLE `issues` ADD COLUMN `category` varchar(100) DEFAULT NULL;
+-- ALTER TABLE `issues` MODIFY COLUMN `image_url` longtext NULL;
 
 --
 -- Dumping data for table `issues`

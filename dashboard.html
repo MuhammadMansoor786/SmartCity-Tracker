@@ -40,6 +40,9 @@
             <input type="text" id="title" placeholder="Masle ka Title (e.g., Tooti hui sarak)" required>
         </div>
         <div class="form-group">
+            <input type="text" id="category" placeholder="Category (optional)">
+        </div>
+        <div class="form-group">
             <input type="text" id="location" placeholder="Exact Location (e.g., Block 4, Street 2)" required>
         </div>
         <div class="form-group">
@@ -62,7 +65,14 @@
 </div>
 
 <script>
-    const userId = localStorage.getItem('userId');
+    let storedUser = null;
+    try {
+        storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+    } catch (err) {
+        storedUser = null;
+    }
+
+    const userId = localStorage.getItem('userId') || (storedUser && (storedUser.id || storedUser.user_id));
     if (!userId) {
         window.location.href = '/';
     }
@@ -70,6 +80,44 @@
     const issueForm = document.getElementById('issueForm');
     const messageDiv = document.getElementById('message');
     const issuesList = document.getElementById('issuesList');
+
+    function getImageSource(imageUrl) {
+        return imageUrl.startsWith('data:image') || imageUrl.startsWith('/uploads/')
+            ? imageUrl
+            : `/uploads/${imageUrl}`;
+    }
+
+    async function compressImage(file) {
+        const image = new Image();
+        const imageUrl = URL.createObjectURL(file);
+
+        try {
+            await new Promise((resolve, reject) => {
+                image.onload = resolve;
+                image.onerror = () => reject(new Error('Could not load the selected image.'));
+                image.src = imageUrl;
+            });
+
+            if (!image.naturalWidth || !image.naturalHeight) {
+                throw new Error('Could not read the selected image.');
+            }
+
+            const scale = Math.min(1, 800 / image.naturalWidth);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(image.naturalWidth * scale);
+            canvas.height = Math.round(image.naturalHeight * scale);
+
+            const context = canvas.getContext('2d');
+            if (!context) {
+                throw new Error('Image compression is unavailable in this browser.');
+            }
+
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg', 0.7);
+        } finally {
+            URL.revokeObjectURL(imageUrl);
+        }
+    }
 
     // Complaint Fetch Karne ka Function
     async function fetchMyIssues() {
@@ -95,7 +143,7 @@
                         <h4 class="issue-title">${issue.title}</h4>
                         <p class="issue-location">📍 ${issue.location}</p>
                         <p class="issue-desc">${issue.description}</p>
-                        ${issue.image_url ? `<img src="${issue.image_url}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">` : ''}
+                        ${issue.image_url ? `<img src="${getImageSource(issue.image_url)}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">` : ''}
                         <span class="badge ${statusClass}">${issue.status}</span>
                     </div>
                 `;
@@ -105,28 +153,25 @@
         }
     }
 
-    // Nayi Complaint Submit Karne ka Logic (FormData ke sath)
     issueForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        // FormData use kar rahe hain taake image aur text sath ja sakein
-        const formData = new FormData();
-        formData.append('user_id', userId);
-        formData.append('title', document.getElementById('title').value);
-        formData.append('location', document.getElementById('location').value);
-        formData.append('description', document.getElementById('description').value);
-        
-        // Agar file select ki gayi hai toh usay FormData mein add karo
-        const imageFile = document.getElementById('image').files[0];
-        if (imageFile) {
-            formData.append('image', imageFile);
-        }
 
         try {
+            const imageFile = document.getElementById('image').files[0];
+            const image_url = imageFile ? await compressImage(imageFile) : null;
+            const issue = {
+                user_id: userId,
+                title: document.getElementById('title').value,
+                category: document.getElementById('category').value.trim() || null,
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value,
+                image_url
+            };
+
             const res = await fetch('/api/issues', {
                 method: 'POST',
-                // Headers yahan isliye nahi hain kyunki FormData khud adjust kar leta hai
-                body: formData 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(issue)
             });
             
             const data = await res.json();

@@ -1,24 +1,13 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
-const multer = require('multer'); // File upload ke liye
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
-const uploadDir = process.env.NETLIFY === 'true'
-    ? '/tmp/uploads'
-    : path.join(__dirname, 'uploads');
 
-fs.mkdirSync(uploadDir, { recursive: true });
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());
 app.use(express.static(__dirname));
-
-// Tasweerein dikhane ke liye uploads folder ko public karna
-app.use('/uploads', express.static(uploadDir));
 
 // MySQL Database Connection
 const db = mysql.createPool({
@@ -31,16 +20,6 @@ const db = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 5
 });
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir); // Folder jahan images save hongi
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)); // Unique image filename
-    }
-});
-const upload = multer({ storage: storage });
 
 // APIs for Auth
 app.post('/api/signup', (req, res) => {
@@ -90,8 +69,15 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-app.post('/api/issues', upload.single('image'), (req, res) => {
-    const { user_id, title, description, location } = req.body || {};
+app.post('/api/issues', (req, res) => {
+    const {
+        user_id,
+        title,
+        category,
+        description,
+        location,
+        image_url
+    } = req.body || {};
     if (!user_id || !title || !description || !location) {
         return res.status(400).json({
             success: false,
@@ -99,15 +85,13 @@ app.post('/api/issues', upload.single('image'), (req, res) => {
         });
     }
 
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null; // Save image URL when present
-    
-    const sql = "INSERT INTO issues (user_id, title, description, location, image_url) VALUES (?, ?, ?, ?, ?)";
-    db.query(sql, [user_id, title, description, location, image_url], (err, result) => {
+    const sql = "INSERT INTO issues (user_id, title, category, description, location, image_url) VALUES (?, ?, ?, ?, ?, ?)";
+    db.query(sql, [user_id, title, category || null, description, location, image_url || null], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({
                 success: false,
-                message: err.sqlMessage || err.message || err.code || 'Database error'
+                message: err.sqlMessage || err.message || 'Server error'
             });
         }
         res.status(201).json({ message: "Aapki complaint successfully darj ho gayi hai!" });

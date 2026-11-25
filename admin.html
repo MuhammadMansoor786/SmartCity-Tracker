@@ -61,7 +61,7 @@
     // Tamaam complaints fetch karna
     async function fetchAllIssues() {
         try {
-            const res = await fetch('http://localhost:3000/api/admin/issues');
+            const res = await fetch('/api/admin/issues');
             const issues = await res.json();
             
             tableBody.innerHTML = '';
@@ -106,7 +106,7 @@
     async function updateStatus(id) {
         const newStatus = document.getElementById(`statusSelect-${id}`).value;
         try {
-            const res = await fetch(`http://localhost:3000/api/admin/issues/${id}`, {
+            const res = await fetch(`/api/admin/issues/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })

@@ -74,7 +74,7 @@
     // Complaint Fetch Karne ka Function
     async function fetchMyIssues() {
         try {
-            const res = await fetch(`http://localhost:3000/api/issues/${userId}`);
+            const res = await fetch(`/api/issues/${userId}`);
             const issues = await res.json();
             
             issuesList.innerHTML = ''; // Loading text hata do
@@ -123,7 +123,7 @@
         }
 
         try {
-            const res = await fetch('http://localhost:3000/api/issues', {
+            const res = await fetch('/api/issues', {
                 method: 'POST',
                 // Headers yahan isliye nahi hain kyunki FormData khud adjust kar leta hai
                 body: formData 

@@ -2,24 +2,33 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const multer = require('multer'); // File upload ke liye
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
+const uploadDir = process.env.NETLIFY === 'true'
+    ? '/tmp/uploads'
+    : path.join(__dirname, 'uploads');
+
+fs.mkdirSync(uploadDir, { recursive: true });
 
 app.use(express.json());
 app.use(cors());
 app.use(express.static(__dirname));
 
 // Tasweerein dikhane ke liye uploads folder ko public karna
-app.use('/uploads', express.static('uploads')); 
+app.use('/uploads', express.static(uploadDir));
 
 // MySQL Database Connection
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '', 
-    database: 'smart_city_db',
-    port: 3307 
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'smart_city_db',
+    port: Number(process.env.DB_PORT || 3307),
+    ...(process.env.DB_SSL === 'true' && {
+        ssl: { rejectUnauthorized: false }
+    })
 });
 
 db.connect((err) => {
@@ -27,13 +36,12 @@ db.connect((err) => {
     else console.log('✅ MySQL Connected successfully!');
 });
 
-// Multer Storage Setup (Tasweer kahan aur kis naam se save hogi)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Folder ka naam jahan images save hongi
+        cb(null, uploadDir); // Folder jahan images save hongi
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)); // Har image ka unique naam
+        cb(null, Date.now() + path.extname(file.originalname)); // Unique image filename
     }
 });
 const upload = multer({ storage: storage });
@@ -61,11 +69,9 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// 👉 UPDATE KI GAYI API: Issue Submit API with Image Upload
-// upload.single('image') multer ko batata hai ke 'image' naam ki 1 file aayegi
 app.post('/api/issues', upload.single('image'), (req, res) => {
     const { user_id, title, description, location } = req.body;
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null; // Agar image hai toh link save karo
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null; // Save image URL when present
     
     const sql = "INSERT INTO issues (user_id, title, description, location, image_url) VALUES (?, ?, ?, ?, ?)";
     db.query(sql, [user_id, title, description, location, image_url], (err, result) => {
@@ -98,6 +104,10 @@ app.put('/api/admin/issues/:id', (req, res) => {
     });
 });
 
-app.listen(3000, () => {
-    console.log('🚀 Server is running on http://localhost:3000');
-});
+if (require.main === module) {
+    app.listen(3000, () => {
+        console.log('🚀 Server is running on http://localhost:3000');
+    });
+}
+
+module.exports = app;

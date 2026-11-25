@@ -121,9 +121,18 @@
 
             if (res.ok) {
                 const user = { ...data.user, role: data.role || data.user.role || 'user' };
+                const isAdmin = user.role === 'admin'
+                    || user.is_admin === 1
+                    || user.is_admin === '1'
+                    || user.is_admin === true;
                 localStorage.setItem('userId', user.id);
                 localStorage.setItem('userRole', user.role);
                 localStorage.setItem('user', JSON.stringify(user));
+                if (isAdmin) {
+                    localStorage.setItem('is_admin', '1');
+                } else {
+                    localStorage.removeItem('is_admin');
+                }
                 
                 // Role ke mutabiq page par bhejo
                 if (user.role === 'admin') {

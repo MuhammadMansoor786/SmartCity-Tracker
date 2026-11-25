@@ -13,8 +13,22 @@
         button { width: 100%; padding: 10px; background: #d9534f; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
         button:hover { background: #c9302c; }
         #message { text-align: center; margin-top: 15px; font-weight: bold; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .panel-nav { display: flex; align-items: center; gap: 6px; }
+        .panel-tab { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border: 1px solid #dee2e6; border-radius: 6px; background: #f8f9fa; color: #343a40; font-size: 14px; font-weight: 600; text-decoration: none; transition: background 0.2s, color 0.2s; }
+        .panel-tab:hover { background: #e2e6ea; }
+        .panel-tab.active { background: #007bff; border-color: #007bff; color: white; }
+        .panel-tab[hidden] { display: none; }
         .logout { background: #6c757d; width: auto; padding: 5px 15px; font-size: 14px; margin-top: 0; }
+        @media (max-width: 520px) {
+            .container { padding: 20px; }
+            .header { align-items: flex-start; }
+            .header h2 { width: 100%; }
+            .header-actions { width: 100%; }
+            .panel-nav { flex: 1; }
+            .panel-tab { flex: 1; }
+        }
         
         /* Complaints List Styling */
         .issue-card { border: 1px solid #e1e4e8; padding: 15px; margin-bottom: 15px; border-radius: 8px; background: #fdfdfd; }
@@ -32,7 +46,13 @@
 <div class="container">
     <div class="header">
         <h2>Report a New Issue</h2>
-        <button class="logout" onclick="logout()">Logout</button>
+        <div class="header-actions">
+            <nav class="panel-nav" aria-label="Panel navigation">
+                <span class="panel-tab active" aria-current="page">User Panel</span>
+                <a class="panel-tab" id="adminPanelLink" href="/admin.html" hidden>Admin Panel</a>
+            </nav>
+            <button class="logout" onclick="logout()">Logout</button>
+        </div>
     </div>
     
     <form id="issueForm">
@@ -76,6 +96,13 @@
     if (!userId) {
         window.location.href = '/';
     }
+
+    const isAdminValue = value => value === 1 || value === '1' || value === true || value === 'true';
+    const isAdmin = (storedUser && storedUser.role === 'admin')
+        || localStorage.getItem('userRole') === 'admin'
+        || isAdminValue(storedUser && storedUser.is_admin)
+        || isAdminValue(localStorage.getItem('is_admin'));
+    document.getElementById('adminPanelLink').hidden = !isAdmin;
 
     const issueForm = document.getElementById('issueForm');
     const messageDiv = document.getElementById('message');
@@ -190,7 +217,7 @@
     });
 
     function logout() {
-        localStorage.removeItem('userId'); 
+        ['userId', 'userRole', 'user', 'is_admin'].forEach(key => localStorage.removeItem(key));
         window.location.href = '/'; 
     }
 

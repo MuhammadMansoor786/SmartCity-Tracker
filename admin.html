@@ -50,7 +50,14 @@
 </div>
 
 <script>
-    const userRole = localStorage.getItem('userRole');
+    let storedUser = null;
+    try {
+        storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+    } catch (err) {
+        storedUser = null;
+    }
+
+    const userRole = (storedUser && storedUser.role) || localStorage.getItem('userRole');
     // Agar user admin nahi hai toh wapas bhej do
     if (userRole !== 'admin') {
         window.location.href = '/';

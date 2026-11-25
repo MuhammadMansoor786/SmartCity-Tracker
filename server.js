@@ -55,7 +55,7 @@ app.post('/api/login', (req, res) => {
         });
     }
 
-    const sql = "SELECT * FROM users WHERE email = ? AND password = ?";
+    const sql = "SELECT id, name, email, role FROM users WHERE email = ? AND password = ?";
     db.query(sql, [email, password], (err, results) => {
         if (err) {
             console.error(err);
@@ -64,8 +64,17 @@ app.post('/api/login', (req, res) => {
                 message: err.sqlMessage || err.message || err.code || 'Database error'
             });
         }
-        if (results.length > 0) res.status(200).json({ message: "Login successful!", user: results[0] });
-        else res.status(401).json({ message: "Email ya password ghalat hai!" });
+        if (results.length > 0) {
+            const user = results[0];
+            const role = user.role || 'user';
+            return res.status(200).json({
+                message: "Login successful!",
+                role,
+                user: { ...user, role }
+            });
+        }
+
+        res.status(401).json({ message: "Email ya password ghalat hai!" });
     });
 });
 

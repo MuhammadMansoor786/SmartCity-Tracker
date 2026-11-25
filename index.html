@@ -119,13 +119,14 @@
             messageDiv.style.color = res.ok ? "green" : "red";
             messageDiv.innerText = data.message;
 
-          if (res.ok) {
-                // User ID aur Role dono save karo
-                localStorage.setItem('userId', data.user.id);
-                localStorage.setItem('userRole', data.user.role);
+            if (res.ok) {
+                const user = { ...data.user, role: data.role || data.user.role || 'user' };
+                localStorage.setItem('userId', user.id);
+                localStorage.setItem('userRole', user.role);
+                localStorage.setItem('user', JSON.stringify(user));
                 
                 // Role ke mutabiq page par bhejo
-                if(data.user.role === 'admin') {
+                if (user.role === 'admin') {
                     window.location.href = '/admin.html';
                 } else {
                     window.location.href = '/dashboard.html';

@@ -13,6 +13,7 @@ const uploadDir = process.env.NETLIFY === 'true'
 fs.mkdirSync(uploadDir, { recursive: true });
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.static(__dirname));
 
@@ -43,7 +44,16 @@ const upload = multer({ storage: storage });
 
 // APIs for Auth
 app.post('/api/signup', (req, res) => {
-    const { name, email, password } = req.body;
+    const body = req.body || {};
+    const name = body.name || body.username || body.full_name;
+    const { email, password } = body;
+    if (!name || !email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'Name, email, and password are required.'
+        });
+    }
+
     const sql = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
     db.query(sql, [name, email, password], (err, result) => {
         if (err) {
@@ -58,7 +68,14 @@ app.post('/api/signup', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'Email and password are required.'
+        });
+    }
+
     const sql = "SELECT * FROM users WHERE email = ? AND password = ?";
     db.query(sql, [email, password], (err, results) => {
         if (err) {
@@ -74,7 +91,14 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/issues', upload.single('image'), (req, res) => {
-    const { user_id, title, description, location } = req.body;
+    const { user_id, title, description, location } = req.body || {};
+    if (!user_id || !title || !description || !location) {
+        return res.status(400).json({
+            success: false,
+            message: 'User ID, title, description, and location are required.'
+        });
+    }
+
     const image_url = req.file ? `/uploads/${req.file.filename}` : null; // Save image URL when present
     
     const sql = "INSERT INTO issues (user_id, title, description, location, image_url) VALUES (?, ?, ?, ?, ?)";
